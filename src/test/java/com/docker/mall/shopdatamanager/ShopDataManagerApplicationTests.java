@@ -14,11 +14,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.Arrays; // 确保导入 Arrays 类
 
-// 这一行非常重要！静态导入
+// === 核心修复：添加静态导入 ===
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static java.util.Arrays.asList; // 🔴 这一行是解决你当前问题的关键
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -39,15 +40,16 @@ public class ShopDataManagerApplicationTests {
         p1.setPrice(BigDecimal.valueOf(100.0));
 
         // 2. 修改 Mock 行为：
-        // 因为 Controller 现在调用的是带参数的 findAll，所以这里用 any() 匹配任意参数
-        // 返回值必须是 Page 类型，所以用 new PageImpl(...) 包裹 List
+        // Mockito.any() 匹配所有参数
+        // 返回值 PageImpl<>(Arrays.asList(p1))
         Mockito.when(productService.findAll(Mockito.any(), Mockito.anyInt(), Mockito.anyInt()))
+                // 🔴 注意：这里我使用 Arrays.asList，因为它现在已经被静态导入了
                 .thenReturn(new PageImpl<>(Arrays.asList(p1)));
 
         // 3. 发起请求并验证
         mockMvc.perform(get("/api/products"))
                 .andExpect(status().isOk())
-                // 注意：分页后的 JSON 数据在 content 字段里，所以是 $.content[0].name
+                // 验证分页返回的 content 字段里的第一个商品的 name
                 .andExpect(jsonPath("$.content[0].name").value("测试商品A"));
     }
 
