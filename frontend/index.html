@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>电商数据管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 20px; background-color: #f8f9fa; }
+        .card { margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 class="mb-4 text-center">📦 商品库存管理</h2>
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <span>商品列表</span>
+            <button class="btn btn-light btn-sm" onclick="loadData()">🔄 刷新数据</button>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>商品名称</th>
+                    <th>价格</th>
+                    <th>描述</th>
+                    <th>更新时间</th>
+                </tr>
+                </thead>
+                <tbody id="product-list">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 页面加载时自动获取数据
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    function loadData() {
+        // 注意：这里请求的是 /api/products
+        // 也就是通过 Nginx 转发给后端，而不是直接请求 8080 端口
+        fetch('/api/products')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('product-list');
+                tbody.innerHTML = ''; // 清空现有列表
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${item.id}</td>
+                        <td><strong>${item.name}</strong></td>
+                        <td class="text-danger">¥${item.price}</td>
+                        <td class="text-muted">${item.description}</td>
+                        <td>${item.updateTime.replace('T', ' ').substring(0, 19)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => console.error('获取数据失败:', err));
+    }
+</script>
+</body>
+</html>
