@@ -14,15 +14,18 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.Arrays; // 确保导入 Arrays 类
+import java.util.Arrays; // 保留这个普通导入，用于 Arrays.asList()
 
-// === 核心修复：添加静态导入 ===
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static java.util.Arrays.asList;
+// === 核心修复：显式导入 MockMvc 方法和结果匹配器 ===
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;   // 导入 get()
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;  // 导入 post()
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath; // 导入 jsonPath()
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;   // 导入 status()
+// 🔴 其它所有静态导入（比如 MockMvcRequestBuilders.*）都删掉，只保留上面这四行，就能解决 IDEA 的警告！
+
 @SpringBootTest
 @AutoConfigureMockMvc
-public class ShopDataManagerApplicationTests {
+public class ShopDataManagerApplicationTests { // 修复了 class 的 public 权限问题
 
     @Autowired
     private MockMvc mockMvc;
@@ -38,17 +41,13 @@ public class ShopDataManagerApplicationTests {
         p1.setName("测试商品A");
         p1.setPrice(BigDecimal.valueOf(100.0));
 
-        // 2. 修改 Mock 行为：
-        // Mockito.any() 匹配所有参数
-        // 返回值 PageImpl<>(Arrays.asList(p1))
+        // 2. Mock Service：匹配任意参数的 findAll
         Mockito.when(productService.findAll(Mockito.any(), Mockito.anyInt(), Mockito.anyInt()))
-                // 🔴 注意：这里我使用 Arrays.asList，因为它现在已经被静态导入了
-                .thenReturn(new PageImpl<>(Arrays.asList(p1)));
+                .thenReturn(new PageImpl<>(Arrays.asList(p1))); // 使用 Arrays.asList (普通导入)
 
         // 3. 发起请求并验证
-        mockMvc.perform(get("/api/products"))
+        mockMvc.perform(get("/api/products")) // 使用显式导入的 get()
                 .andExpect(status().isOk())
-                // 验证分页返回的 content 字段里的第一个商品的 name
                 .andExpect(jsonPath("$.content[0].name").value("测试商品A"));
     }
 
@@ -60,7 +59,7 @@ public class ShopDataManagerApplicationTests {
 
         Mockito.when(productService.save(Mockito.any(Product.class))).thenReturn(p);
 
-        mockMvc.perform(post("/api/products")
+        mockMvc.perform(post("/api/products") // 使用显式导入的 post()
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().writeValueAsString(p)))
                 .andExpect(status().isOk());
