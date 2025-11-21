@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "records": [
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/test/java/com/docker/mall/shopdatamanager/ShopDataManagerApplicationTests.java",
+      "timestamp": 1763712176300,
+      "startOffset": 49,
+      "endOffset": 2062,
+      "codeContent": "com.docker.mall.shopdatamanager.entity.Product;\nimport com.docker.mall.shopdatamanager.service.ProductService;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport org.junit.jupiter.api.Test;\nimport org.mockito.Mockito;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;\nimport org.springframework.boot.test.context.SpringBootTest;\nimport org.springframework.boot.test.mock.mockito.MockBean;\nimport org.springframework.http.MediaType;\nimport org.springframework.test.web.servlet.MockMvc;\n\nimport java.math.BigDecimal;\nimport java.util.Arrays;\nimport java.util.Optional;\n\nimport static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;\n\n@SpringBootTest\n@AutoConfigureMockMvc\nclass ShopDataManagerApplicationTests {\n\n    @Autowired\n    private MockMvc mockMvc;\n\n    @MockBean\n    private ProductService productService;\n\n    @Test\n    void testGetAllProducts() throws Exception {\n        // 1. 模拟 Service 返回的数据\n        Product p1 \u003d new Product();\n        p1.setId(1L);\n        p1.setName(\"测试商品A\");\n        p1.setPrice(BigDecimal.valueOf(100.0));\n\n        Mockito.when(productService.findAll()).thenReturn(Arrays.asList(p1));\n\n        // 2. 发起 GET 请求并验证结果\n        mockMvc.perform(get(\"/api/products\"))\n                .andExpect(status().isOk())\n                .andExpect(jsonPath(\"$[0].name\").value(\"测试商品A\"));\n    }\n\n    @Test\n    void testCreateProduct() throws Exception {\n        Product p \u003d new Product();\n        p.setName(\"新商品\");\n        p.setPrice(BigDecimal.valueOf(99.9));\n\n        Mockito.when(productService.save(Mockito.any(Product.class))).thenReturn(p);\n\n        mockMvc.perform(post(\"/api/products\")\n                        .contentType(MediaType.APPLICATION_JSON)\n                        .content(new ObjectMapper().writeValueAsString(p)))\n                .andExpect(status().isOk());\n    }\n}",
+      "aiProbability": 95,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 59
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/main/java/com/docker/mall/shopdatamanager/repository/ProductRepository.java",
+      "timestamp": 1763735882928,
+      "startOffset": 170,
+      "endOffset": 386,
+      "codeContent": "import java.util.List;\n\npublic interface ProductRepository extends JpaRepository\u003cProduct, Long\u003e {\n    //这行代码会自动生成 SQL: SELECT * FROM product WHERE name LIKE %name%\n    List\u003cProduct\u003e findByNameContaining(String name);",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 5
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/main/java/com/docker/mall/shopdatamanager/service/ProductService.java",
+      "timestamp": 1763735959486,
+      "startOffset": 344,
+      "endOffset": 863,
+      "codeContent": "\npublic class ProductService {\n\n    @Autowired\n    private ProductRepository repository;\n\n    // 修改：增加 keyword 参数\n    public List\u003cProduct\u003e findAll(String keyword) {\n        if (keyword !\u003d null \u0026\u0026 !keyword.isEmpty()) {\n            return repository.findByNameContaining(keyword);\n        }\n        return repository.findAll();\n    }\n\n    public Optional\u003cProduct\u003e findById(Long id) {\n        return repository.findById(id);\n    }\n\n    public Product save(Product product) {\n        return repository.save(product);\n    }\n",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 22
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/main/java/com/docker/mall/shopdatamanager/controller/ProductController.java",
+      "timestamp": 1763736533294,
+      "startOffset": 261,
+      "endOffset": 1867,
+      "codeContent": "data.domain.Page;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.*;\n\n@RestController\n@RequestMapping(\"/api/products\")\n@CrossOrigin(origins \u003d \"*\") // 允许前端跨域访问\npublic class ProductController {\n\n    @Autowired\n    private ProductService service;\n\n    // 核心修改：返回类型变为 Page\u003cProduct\u003e，接收分页参数\n    // @RequestParam defaultValue 设置默认值：默认看第0页，每页5条\n    @GetMapping\n    public Page\u003cProduct\u003e getAllProducts(\n            @RequestParam(required \u003d false) String name,\n            @RequestParam(defaultValue \u003d \"0\") int page,\n            @RequestParam(defaultValue \u003d \"5\") int size) {\n        return service.findAll(name, page, size);\n    }\n\n    // --- 以下代码未变动 ---\n\n    @GetMapping(\"/{id}\")\n    public ResponseEntity\u003cProduct\u003e getProductById(@PathVariable Long id) {\n        return service.findById(id)\n                .map(ResponseEntity::ok)\n                .orElse(ResponseEntity.notFound().build());\n    }\n\n    @PostMapping\n    public Product createProduct(@RequestBody Product product) {\n        return service.save(product);\n    }\n\n    @PutMapping(\"/{id}\")\n    public ResponseEntity\u003cProduct\u003e updateProduct(@PathVariable Long id, @RequestBody Product product) {\n        return service.findById(id)\n                .map(existing -\u003e {\n                    existing.setName(product.getName());\n                    existing.setPrice(product.getPrice());\n                    existing.setDescription(product.getDescription());\n                    return ResponseEntity.ok(service.save(existing));\n                })\n                .orElse(ResponseEntity.notFound().build());\n    }\n",
+      "aiProbability": 95,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 48
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/main/java/com/docker/mall/shopdatamanager/service/ProductService.java",
+      "timestamp": 1763736965599,
+      "startOffset": 493,
+      "endOffset": 1127,
+      "codeContent": "List;\nimport java.util.Optional;\n\n@Service\npublic class ProductService {\n\n    @Autowired\n    private ProductRepository repository;\n\n    // 1. 分页查询 (支持搜索) - 给列表用\n    public Page\u003cProduct\u003e findAll(String keyword, int page, int size) {\n        // 创建分页对象：按 id 倒序排列\n        Pageable pageable \u003d PageRequest.of(page, size, Sort.by(\"id\").descending());\n\n        if (keyword !\u003d null \u0026\u0026 !keyword.isEmpty()) {\n            return repository.findByNameContaining(keyword, pageable);\n        }\n        return repository.findAll(pageable);\n    }\n\n    // 2. 查询所有 (不分页) - 给图表用\n    public List\u003cProduct\u003e findAllList() {\n        return repository.findAll(",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 23
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/test/java/com/docker/mall/shopdatamanager/ShopDataManagerApplicationTests.java",
+      "timestamp": 1763737232849,
+      "startOffset": 695,
+      "endOffset": 1914,
+      "codeContent": "\n// \u003d\u003d\u003d ⭐ 核心修复：添加这两行静态导入 \u003d\u003d\u003d\nimport static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;\n\n@SpringBootTest\n@AutoConfigureMockMvc\nclass ShopDataManagerApplicationTests {\n\n    @Autowired\n    private MockMvc mockMvc;\n\n    @MockBean\n    private ProductService productService;\n\n    @Test\n    void testGetAllProducts() throws Exception {\n        // 1. 模拟 Service 返回的数据\n        Product p1 \u003d new Product();\n        p1.setId(1L);\n        p1.setName(\"测试商品A\");\n        p1.setPrice(BigDecimal.valueOf(100.0));\n\n        Mockito.when(productService.findAll()).thenReturn(Arrays.asList(p1));\n\n        // 2. 发起 GET 请求并验证结果\n        // 这里的 get(), status(), jsonPath() 现在应该都不报红了\n        mockMvc.perform(get(\"/api/products\"))\n                .andExpect(status().isOk())\n                .andExpect(jsonPath(\"$[0].name\").value(\"测试商品A\"));\n    }\n\n    @Test\n    void testCreateProduct() throws Exception {\n        Product p \u003d new Product();\n        p.setName(\"新商品\");\n        p.setPrice(BigDecimal.valueOf(99.9));\n\n        Mockito.when(productService.save(Mockito.any(Product.class))).thenReturn(p);\n\n        // 这里的 post(), status() 也应该好了",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 41
+    },
+    {
+      "filePath": "/ShopDataManagerApplicationTests.java",
+      "timestamp": 1763738305593,
+      "startOffset": 969,
+      "endOffset": 989,
+      "codeContent": "IntellijIdeaRulezzz;",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 1
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/test/java/com/docker/mall/shopdatamanager/ShopDataManagerApplicationTests.java",
+      "timestamp": 1763738480749,
+      "startOffset": 743,
+      "endOffset": 1900,
+      "codeContent": " // 确保导入 Arrays 类\n\n// \u003d\u003d\u003d 核心修复：添加静态导入 \u003d\u003d\u003d\nimport static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;\nimport static java.util.Arrays.asList; // 🔴 这一行是解决你当前问题的关键\n\n@SpringBootTest\n@AutoConfigureMockMvc\npublic class ShopDataManagerApplicationTests {\n\n    @Autowired\n    private MockMvc mockMvc;\n\n    @MockBean\n    private ProductService productService;\n\n    @Test\n    void testGetAllProducts() throws Exception {\n        // 1. 准备模拟数据\n        Product p1 \u003d new Product();\n        p1.setId(1L);\n        p1.setName(\"测试商品A\");\n        p1.setPrice(BigDecimal.valueOf(100.0));\n\n        // 2. 修改 Mock 行为：\n        // Mockito.any() 匹配所有参数\n        // 返回值 PageImpl\u003c\u003e(Arrays.asList(p1))\n        Mockito.when(productService.findAll(Mockito.any(), Mockito.anyInt(), Mockito.anyInt()))\n                // 🔴 注意：这里我使用 Arrays.asList，因为它现在已经被静态导入了\n                .thenReturn(new PageImpl\u003c\u003e(Arrays.asList(p1)));\n\n        // 3. 发起请求并验证\n        mockMvc.perform(get(\"/api/products\"))\n                .andExpect(status().isOk())\n                // 验证分页返回的 content 字段里的第一个商品的 ",
+      "aiProbability": 90,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 36
+    }
+  ],
+  "toolStats": {
+    "AI Assistant": {
+      "usageCount": 8,
+      "totalLines": 235
+    }
+  }
+}
