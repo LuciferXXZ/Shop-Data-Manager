@@ -19,50 +19,39 @@ services:
     networks:
       - mall-net
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    healthcheck: # 健康检查 (加分项)
+    healthcheck: # 保留你的健康检查，很棒！
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # =========================================
-  # 2. 后端 API 服务 (Spring Boot)
+  # 2. 后端 API 服务 (Spring Boot + 静态网页)
   # =========================================
   app-backend:
     build: .                      # 使用当前目录的 Dockerfile 构建
     container_name: mall-backend
+    # ⚠️ 修改点：端口改为 9090，因为你代码里配置的是 9090
     ports:
-      - "8080:8080"
+      - "9090:9090"
     depends_on:
       mysql:
         condition: service_healthy # 等 MySQL 完全启动了再启动后端
     environment:
-      # 关键点！这里覆盖了 application.properties 里的配置
-      # 在容器里，我们不能用 localhost，必须用服务名 "mysql"
+      # 容器内连接数据库，主机名必须用 service 名 "mysql"
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_PASSWORD: root
       TZ: Asia/Shanghai
     networks:
       - mall-net
 
-  # =========================================
-  # 3. 前端服务 (Nginx)
-  # =========================================
-  app-frontend:
-    build: ./frontend             # 使用 frontend 目录下的 Dockerfile 构建
-    container_name: mall-frontend
-    ports:
-      - "8081:80"                   # 浏览器访问 localhost (默认80端口)
-    depends_on:
-      - app-backend               # 依赖后端服务
-    networks:
-      - mall-net
+  # ❌ 已删除 app-frontend 服务 (因为网页已经集成到 app-backend 里了)
 
 # 定义数据卷
 volumes:
   mysql-data:
 
-# 定义自定义网络 (评分要求)
+# 定义自定义网络
 networks:
   mall-net:
     driver: bridge

@@ -3,26 +3,36 @@ package com.docker.mall.shopdatamanager.controller;
 import com.docker.mall.shopdatamanager.entity.Product;
 import com.docker.mall.shopdatamanager.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController // 声明这是一个 RESTful 接口控制器
-@RequestMapping("/api/products") // 统一的基础路径
-@CrossOrigin(origins = "*") // 允许跨域（为了配合后面前端调用，防止报错）
+@RestController
+@RequestMapping("/api/products")
+@CrossOrigin(origins = "*")
 public class ProductController {
 
     @Autowired
     private ProductService service;
 
-    // 1. 获取列表 (GET /api/products)
+    // 1. 获取分页列表 (GET /api/products?page=0&size=5&name=xxx)
     @GetMapping
-    public List<Product> getAllProducts() {
-        return service.findAll();
+    public Page<Product> getAllProducts(
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return service.findAll(name, page, size);
     }
 
-    // 2. 获取单个详情 (GET /api/products/{id})
+    // 2. 获取所有数据 (GET /api/products/all) - 专门给图表用
+    @GetMapping("/all")
+    public List<Product> getAllProductsList() {
+        return service.findAllList();
+    }
+
+    // 3. 获取详情
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@PathVariable Long id) {
         return service.findById(id)
@@ -30,13 +40,13 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 3. 新增商品 (POST /api/products)
+    // 4. 新增
     @PostMapping
     public Product createProduct(@RequestBody Product product) {
         return service.save(product);
     }
 
-    // 4. 更新商品 (PUT /api/products/{id})
+    // 5. 修改
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         return service.findById(id)
@@ -49,7 +59,7 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 5. 删除商品 (DELETE /api/products/{id})
+    // 6. 删除
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         service.deleteById(id);
