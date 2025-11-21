@@ -19,8 +19,7 @@ import java.util.Arrays; // 确保导入 Arrays 类
 // === 核心修复：添加静态导入 ===
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static java.util.Arrays.asList; // 🔴 这一行是解决你当前问题的关键
-
+import static java.util.Arrays.asList;
 @SpringBootTest
 @AutoConfigureMockMvc
 public class ShopDataManagerApplicationTests {
