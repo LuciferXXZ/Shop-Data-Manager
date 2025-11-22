@@ -94,7 +94,7 @@ metadata:
   labels:
     app: backend
 spec:
-  replicas: 1 # ⚠️ 修复点：减少到 1 个副本
+  replicas: 1 # 修复点：减少到 1 个副本，适合单节点集群
   selector:
     matchLabels:
       app: backend
@@ -115,7 +115,8 @@ spec:
               value: root
             - name: TZ
               value: Asia/Shanghai
-          # ⚠️ 修复点：移除了 Liveness/Readiness 探针，确保 Pod 进程启动即为就绪
+          # 修复点：移除了 Liveness/Readiness 探针，确保 Pod 进程启动即为就绪
+          # 在单节点有限资源下，这样设置可保证容器稳定运行。
 
 ---
 
@@ -145,7 +146,7 @@ metadata:
   labels:
     app: frontend
 spec:
-  replicas: 1 # ⚠️ 修复点：减少到 1 个副本
+  replicas: 1 # 修复点：减少到 1 个副本
   selector:
     matchLabels:
       app: frontend

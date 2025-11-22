@@ -132,12 +132,23 @@
       "aiTool": "AI Assistant",
       "detectionMethod": "REALTIME_SPEED_ANALYSIS",
       "lineCount": 26
+    },
+    {
+      "filePath": "C:/Users/22951/IdeaProjects/Shop-Data-Manager/src/main/java/com/docker/mall/shopdatamanager/service/ProductService.java",
+      "timestamp": 1763798625552,
+      "startOffset": 475,
+      "endOffset": 1392,
+      "codeContent": "import org.springframework.transaction.annotation.Transactional; // ⚠️ 最终修复：新增导入\n\nimport java.util.List;\nimport java.util.Optional;\n\n@Service\npublic class ProductService {\n\n    @Autowired\n    private ProductRepository repository;\n\n    // 1. 分页查询 (支持搜索) - 给列表用\n    public Page\u003cProduct\u003e findAll(String keyword, int page, int size) {\n        // 创建分页对象：按 id 倒序排列 (已回滚到倒序)\n        Pageable pageable \u003d PageRequest.of(page, size, Sort.by(\"id\").descending());\n\n        if (keyword !\u003d null \u0026\u0026 !keyword.isEmpty()) {\n            return repository.findByNameContaining(keyword, pageable);\n        }\n        return repository.findAll(pageable);\n    }\n\n    // 2. 查询所有 (不分页) - 给图表用\n    public List\u003cProduct\u003e findAllList() {\n        return repository.findAll();\n    }\n\n    public Optional\u003cProduct\u003e findById(Long id) {\n        return repository.findById(id);\n    }\n\n    // ⚠️ 最终修复：添加 @Transactional 确保事务在 K8s 环境中正确提交\n    @Transactional",
+      "aiProbability": 95,
+      "aiTool": "AI Assistant",
+      "detectionMethod": "REALTIME_SPEED_ANALYSIS",
+      "lineCount": 33
     }
   ],
   "toolStats": {
     "AI Assistant": {
-      "usageCount": 12,
-      "totalLines": 556
+      "usageCount": 13,
+      "totalLines": 589
     }
   }
 }

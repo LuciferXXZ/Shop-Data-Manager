@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // ⚠️ 最终修复：新增导入
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +21,7 @@ public class ProductService {
 
     // 1. 分页查询 (支持搜索) - 给列表用
     public Page<Product> findAll(String keyword, int page, int size) {
-        // ⚠️ 已回滚：创建分页对象，按 id 倒序排列 (descending)，最新数据在前
+        // 创建分页对象：按 id 倒序排列 (已回滚到倒序)
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
         if (keyword != null && !keyword.isEmpty()) {
@@ -38,6 +39,8 @@ public class ProductService {
         return repository.findById(id);
     }
 
+    // ⚠️ 最终修复：添加 @Transactional 确保事务在 K8s 环境中正确提交
+    @Transactional
     public Product save(Product product) {
         return repository.save(product);
     }
