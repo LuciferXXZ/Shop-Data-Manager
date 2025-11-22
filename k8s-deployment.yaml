@@ -1,4 +1,8 @@
-# 1. 持久卷声明 (PersistentVolumeClaim) - 用于 MySQL 数据持久化
+# ==========================================
+# 1. MySQL 数据库层
+# ==========================================
+
+# PVC: 数据持久化
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -10,11 +14,38 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi # 请求 1GB 存储空间
+      storage: 1Gi
 
 ---
+# ConfigMap: 存放初始化 SQL 脚本 (✅ 新增功能：自动初始化)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb-config
+data:
+  init.sql: |
+    -- 切换到 mall 数据库
+    SET NAMES utf8mb4;
+    USE mall;
 
-# 2. MySQL 数据库服务 (Service) - 集群内部访问
+    -- 创建商品表
+    CREATE TABLE IF NOT EXISTS product (
+                                           id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+                                           name VARCHAR(100) NOT NULL COMMENT '商品名称',
+        price DECIMAL(10, 2) NOT NULL COMMENT '商品价格',
+        description VARCHAR(255) COMMENT '商品描述',
+        create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    -- 插入几条测试数据
+    INSERT INTO product (name, price, description) VALUES
+                                                       ('Docker入门教程', 59.90, '深入浅出学习容器技术'),
+                                                       ('Spring Boot实战', 89.00, 'Java后端开发必读'),
+                                                       ('机械键盘', 299.00, '程序员编码神器');
+
+---
+# MySQL Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -29,8 +60,7 @@ spec:
   clusterIP: None
 
 ---
-
-# 3. MySQL 数据库部署 (Deployment) - 使用官方镜像
+# MySQL Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,7 +83,7 @@ spec:
           image: mysql:8.0
           ports:
             - containerPort: 3306
-          env: # 匹配 docker-compose.yml 中的环境变量
+          env:
             - name: MYSQL_ROOT_PASSWORD
               value: root
             - name: MYSQL_DATABASE
@@ -63,18 +93,29 @@ spec:
           volumeMounts:
             - name: mysql-persistent-storage
               mountPath: /var/lib/mysql
+            # ✅ 将 ConfigMap 挂载到容器的初始化目录
+            - name: mysql-initdb
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: mysql-persistent-storage
           persistentVolumeClaim:
             claimName: mysql-pv-claim
+        # ✅ 定义 ConfigMap 卷
+        - name: mysql-initdb
+          configMap:
+            name: mysql-initdb-config
 
 ---
 
-# 4. 后端 API 服务 (Service) - 集群内部访问
+# ==========================================
+# 2. 后端 API 服务 (支持蓝绿部署)
+# ==========================================
+
+# 后端 Service：作为流量入口
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-backend-service
+  name: app-backend  # ✅ 修复：名称必须是 app-backend，与 Nginx 配置一致
   labels:
     app: backend
 spec:
@@ -83,44 +124,84 @@ spec:
       targetPort: 9090
   selector:
     app: backend
+    # ⚠️ 核心控制点：修改这里的 color 来切换流量 (blue <-> green)
+    color: blue
 
 ---
 
-# 5. 后端 API 部署 (Deployment) - 使用多阶段构建的镜像
+# 🔵 蓝色环境 (V1 - 当前在线)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-backend-deployment
+  name: app-backend-blue
   labels:
     app: backend
+    color: blue
 spec:
-  replicas: 1 # 修复点：减少到 1 个副本，适合单节点集群
+  replicas: 1
   selector:
     matchLabels:
       app: backend
+      color: blue
   template:
     metadata:
       labels:
         app: backend
+        color: blue
     spec:
       containers:
         - name: app-backend
           image: shop-backend:v1
           ports:
             - containerPort: 9090
-          env: # 连接数据库的服务名必须是 mysql-service
+          env:
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mysql://mysql-service:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
             - name: SPRING_DATASOURCE_PASSWORD
               value: root
             - name: TZ
               value: Asia/Shanghai
-          # 修复点：移除了 Liveness/Readiness 探针，确保 Pod 进程启动即为就绪
-          # 在单节点有限资源下，这样设置可保证容器稳定运行。
 
 ---
 
-# 6. 前端 Nginx 服务 (Service) - 对外暴露
+# 🟢 绿色环境 (V2 - 待发布)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-backend-green
+  labels:
+    app: backend
+    color: green
+spec:
+  replicas: 0 # 初始不运行，演示部署时改为 1
+  selector:
+    matchLabels:
+      app: backend
+      color: green
+  template:
+    metadata:
+      labels:
+        app: backend
+        color: green
+    spec:
+      containers:
+        - name: app-backend
+          image: shop-backend:v1
+          ports:
+            - containerPort: 9090
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql-service:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: root
+            - name: TZ
+              value: Asia/Shanghai
+
+---
+
+# ==========================================
+# 3. 前端 Nginx 服务
+# ==========================================
 apiVersion: v1
 kind: Service
 metadata:
@@ -128,17 +209,15 @@ metadata:
   labels:
     app: frontend
 spec:
-  type: NodePort # 使用 NodePort 对外暴露服务
+  type: NodePort
   ports:
     - port: 80
       targetPort: 80
-      nodePort: 30081 # 可以在集群节点的 30081 端口访问
+      nodePort: 30081
   selector:
     app: frontend
 
 ---
-
-# 7. 前端 Nginx 部署 (Deployment) - 使用 Nginx 镜像
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -146,7 +225,7 @@ metadata:
   labels:
     app: frontend
 spec:
-  replicas: 1 # 修复点：减少到 1 个副本
+  replicas: 1
   selector:
     matchLabels:
       app: frontend

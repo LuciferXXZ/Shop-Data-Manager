@@ -1,0 +1,10 @@
+global:
+  # 默认每 15 秒抓取一次指标
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'shop-backend'
+    # 因为 Prometheus 运行在与 app-backend 相同的 Docker 网络中，可以直接使用服务名和端口。
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['app-backend:9090']

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # =========================================
   # 1. 数据库服务 (MySQL)
@@ -27,14 +25,10 @@ services:
 
   # =========================================
   # 2. 后端 API 服务 (Spring Boot)
-  # ⚠️ 修复点：移除了端口映射，仅对内部网络可见
-  # ⚠️ 修复点：新增了健康检查，确保 Nginx 在后端可用后才启动
   # =========================================
   app-backend:
     build: .                      # 使用当前目录的 Dockerfile 构建
     container_name: mall-backend
-    # ports: # 宿主机端口映射已移除，外部访问由 Nginx 负责
-    #   - "9090:9090"
     depends_on:
       mysql:
         condition: service_healthy # 等 MySQL 完全启动了再启动后端
@@ -46,7 +40,6 @@ services:
     networks:
       - mall-net
     healthcheck: # 后端服务的健康检查
-      # 假设您已引入 Spring Boot Actuator，否则使用 /api/products 等可用接口
       test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
       interval: 10s
       timeout: 3s
@@ -54,8 +47,7 @@ services:
       start_period: 20s # 增加启动等待时间
 
   # =========================================
-  # 3. 前端 Nginx 服务 (新增/恢复)
-  # ⚠️ 修复点：使用 frontend 目录下的 Dockerfile 独立构建 Nginx 容器
+  # 3. 前端 Nginx 服务
   # =========================================
   app-frontend:
     build:
@@ -68,6 +60,39 @@ services:
         condition: service_healthy # 等后端健康了再启动前端
     networks:
       - mall-net
+
+  # =========================================
+  # 4. 监控服务 (Prometheus) - ✅ 新增 APM
+  # =========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mall-prometheus
+    ports:
+      - "9090:9090" # 暴露 Prometheus 网页界面
+    command: --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      # ⚠️ 确保您已创建 ./config/prometheus.yml 文件！
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml # 挂载配置文件
+    networks:
+      - mall-net
+
+  # =========================================
+  # 5. 可视化面板 (Grafana) - ✅ 新增 APM
+  # =========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mall-grafana
+    ports:
+      - "3000:3000" # 暴露 Grafana 网页界面
+    depends_on:
+      - prometheus
+    networks:
+      - mall-net
+    environment:
+      # 默认登录: admin / admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
 
 # 定义数据卷
 volumes:
