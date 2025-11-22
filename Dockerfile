@@ -1,4 +1,4 @@
-# ==============================
+# # ==============================
 # 第一阶段：构建阶段 (Builder)
 # 使用 Maven 镜像进行编译，这一阶段会产生很多缓存和垃圾文件，但没关系，最后不会打包进最终镜像
 # ==============================
@@ -19,6 +19,9 @@ RUN mvn package -DskipTests
 # 只使用轻量级的 JRE 运行环境，抛弃 Maven 和编译缓存
 # ==============================
 FROM eclipse-temurin:21-jre-alpine
+
+# ⚠️ 修复点：安装 curl，以确保 Docker Compose 的 Healthcheck 命令能正常执行
+RUN apk add --no-cache curl
 
 # 设置工作目录
 WORKDIR /app

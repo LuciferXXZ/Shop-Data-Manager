@@ -20,7 +20,7 @@ public class ProductService {
 
     // 1. 分页查询 (支持搜索) - 给列表用
     public Page<Product> findAll(String keyword, int page, int size) {
-        // 创建分页对象：按 id 倒序排列
+        // ⚠️ 已回滚：创建分页对象，按 id 倒序排列 (descending)，最新数据在前
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
         if (keyword != null && !keyword.isEmpty()) {

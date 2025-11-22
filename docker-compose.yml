@@ -19,21 +19,22 @@ services:
     networks:
       - mall-net
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    healthcheck: # 保留你的健康检查，很棒！
+    healthcheck: # 数据库健康检查
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # =========================================
-  # 2. 后端 API 服务 (Spring Boot + 静态网页)
+  # 2. 后端 API 服务 (Spring Boot)
+  # ⚠️ 修复点：移除了端口映射，仅对内部网络可见
+  # ⚠️ 修复点：新增了健康检查，确保 Nginx 在后端可用后才启动
   # =========================================
   app-backend:
     build: .                      # 使用当前目录的 Dockerfile 构建
     container_name: mall-backend
-    # ⚠️ 修改点：端口改为 9090，因为你代码里配置的是 9090
-    ports:
-      - "9090:9090"
+    # ports: # 宿主机端口映射已移除，外部访问由 Nginx 负责
+    #   - "9090:9090"
     depends_on:
       mysql:
         condition: service_healthy # 等 MySQL 完全启动了再启动后端
@@ -44,8 +45,29 @@ services:
       TZ: Asia/Shanghai
     networks:
       - mall-net
+    healthcheck: # 后端服务的健康检查
+      # 假设您已引入 Spring Boot Actuator，否则使用 /api/products 等可用接口
+      test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s # 增加启动等待时间
 
-  # ❌ 已删除 app-frontend 服务 (因为网页已经集成到 app-backend 里了)
+  # =========================================
+  # 3. 前端 Nginx 服务 (新增/恢复)
+  # ⚠️ 修复点：使用 frontend 目录下的 Dockerfile 独立构建 Nginx 容器
+  # =========================================
+  app-frontend:
+    build:
+      context: ./frontend # 使用 frontend 目录下的 Dockerfile
+    container_name: mall-frontend
+    ports:
+      - "8081:80" # 宿主机 8081 -> 容器 80 (与 README.md 描述一致)
+    depends_on:
+      app-backend:
+        condition: service_healthy # 等后端健康了再启动前端
+    networks:
+      - mall-net
 
 # 定义数据卷
 volumes:
