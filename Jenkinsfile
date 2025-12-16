@@ -54,6 +54,7 @@ pipeline {
         }
 
         // 4. 部署阶段
+        //蓝绿test1
         stage('Deploy') {
             steps {
                 echo 'Deploying to Environment...'
