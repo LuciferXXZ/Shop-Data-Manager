@@ -18,21 +18,20 @@ pipeline {
             }
         }
 
-// 2. 自动化测试阶段 (修复数据库连接问题)
+// 2. 自动化测试阶段
         stage('Test') {
             steps {
                 echo 'Running Unit Tests...'
-                // 使用 -D 参数动态覆盖配置文件中的数据库地址
-                // host.docker.internal 会引导容器访问宿主机映射出来的 3307 端口
-                sh './mvnw test -Dspring.datasource.url=jdbc:mysql://host.docker.internal:3307/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai'
+                // 💡 重点：必须使用 mysql (容器服务名) 和 3306 (容器内部端口)
+                sh './mvnw test -Dspring.datasource.url=jdbc:mysql://mysql:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai'
             }
             post {
                 always {
-                    // 收集测试报告
                     junit 'target/surefire-reports/*.xml'
                 }
             }
         }
+        // 3. 镜像构建阶段 (对应评分：镜像构建)
         stage('Docker Build') {
             steps {
                 echo 'Building Docker Image...'
