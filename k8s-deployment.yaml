@@ -152,6 +152,7 @@ spec:
       containers:
         - name: app-backend
           image: shop-backend:v1
+          imagePullPolicy: Never
           ports:
             - containerPort: 9090
           env:
@@ -187,6 +188,7 @@ spec:
       containers:
         - name: app-backend
           image: shop-backend:v1
+          imagePullPolicy: Never
           ports:
             - containerPort: 9090
           env:

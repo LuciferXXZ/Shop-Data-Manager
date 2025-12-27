@@ -18,21 +18,21 @@ pipeline {
             }
         }
 
-        // 2. 自动化测试阶段 (对应评分：自动化测试 10分)
+// 2. 自动化测试阶段 (修复数据库连接问题)
         stage('Test') {
             steps {
                 echo 'Running Unit Tests...'
-                // 运行单元测试
-                sh './mvnw test'
+                // 使用 -D 参数动态覆盖配置文件中的数据库地址
+                // host.docker.internal 会引导容器访问宿主机映射出来的 3307 端口
+                sh './mvnw test -Dspring.datasource.url=jdbc:mysql://host.docker.internal:3307/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai'
             }
             post {
                 always {
-                    // 收集测试报告 (如果有 JUnit 插件)
+                    // 收集测试报告
                     junit 'target/surefire-reports/*.xml'
                 }
             }
         }
-
         // 3. 镜像构建阶段 (对应评分：镜像构建)
         stage('Docker Build') {
             steps {

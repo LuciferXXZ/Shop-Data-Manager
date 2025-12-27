@@ -83,7 +83,7 @@ services:
     image: grafana/grafana:latest
     container_name: mall-grafana
     ports:
-      - "3000:3000" # 暴露 Grafana 网页界面
+      - "3001:3000" # 暴露 Grafana 网页界面
     depends_on:
       - prometheus
     networks:
