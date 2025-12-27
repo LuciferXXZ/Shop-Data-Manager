@@ -33,7 +33,6 @@ pipeline {
                 }
             }
         }
-        // 3. 镜像构建阶段 (对应评分：镜像构建)
         stage('Docker Build') {
             steps {
                 echo 'Building Docker Image...'
