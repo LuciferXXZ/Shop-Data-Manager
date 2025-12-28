@@ -20,23 +20,20 @@ pipeline {
             }
         }
 
-        // 2. 自动化测试阶段
+
         stage('Test') {
             steps {
                 echo 'Running Unit Tests...'
 
-                // 🆕 新增步骤：确保 MySQL 服务已启动
-                // 单元测试需要连接数据库，必须先启动 docker-compose 中的 mysql 服务
-                sh 'docker-compose up -d mysql'
+                // 🔴 删除或注释掉下面这两行！
+                // 解释：因为 Jenkins 和现有的 MySQL 都在 mall-net 网络里，
+                // 我们直接连现成的数据库就行，不要试图去创建一个同名的冲突容器。
+                // sh 'docker-compose up -d mysql'
+                // sh 'sleep 20'
 
-                // 等待数据库完全启动 (简单等待 20秒，确保 MySQL 端口就绪)
-                sh 'sleep 20'
-
-                // 💡 修复点：修改数据库连接地址
-                // 连接宿主机映射端口 3307
-                // (如果您是在宿主机直接运行 Jenkins，请将 host.docker.internal 改为 localhost)
-// 这里使用 3306 端口，因为是在 Docker 网络内部直接访问 mysql 容器
-sh './mvnw test -Dmaven.test.failure.ignore=true "-Dspring.datasource.url=jdbc:mysql://mysql:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"'
+                // ✅ 保持这行不变 (连接地址已经是 mysql:3306 了)
+                // 加上 -Dmaven.test.failure.ignore=true
+                sh './mvnw test -Dmaven.test.failure.ignore=true "-Dspring.datasource.url=jdbc:mysql://mysql:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"'
             }
             post {
                 always {
