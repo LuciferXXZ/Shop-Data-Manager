@@ -68,9 +68,6 @@ pipeline {
                 echo 'Deploying to Environment...'
                 // 只更新后端和前端，避免重启 Jenkins 自身
                 sh "docker-compose up -d --build app-backend app-frontend"
-
-                // 确保其他基础服务运行
-                sh "docker-compose up -d mysql prometheus grafana"
             }
         }
     }
