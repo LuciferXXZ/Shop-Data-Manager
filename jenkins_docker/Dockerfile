@@ -1,4 +1,4 @@
-# 1. 使用官方 LTS 版本
+
 FROM jenkins/jenkins:lts
 
 # 2. 切换到 root 安装工具
