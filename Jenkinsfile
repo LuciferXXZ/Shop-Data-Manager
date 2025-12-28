@@ -1,11 +1,16 @@
 pipeline {
     agent any
 
-    // 定义环境变量
+// 定义环境变量
     environment {
         // 镜像名称
         IMAGE_NAME = 'shop-backend'
         IMAGE_TAG = 'v1'
+
+        // ✅ 新增：强制指定项目名称为 "shop-data-manager"
+        // 这样 Jenkins 就能直接复用你宿主机上已经启动的 mysql 和其他容器，
+        // 而不是试图创建一个名字冲突的新容器。
+        COMPOSE_PROJECT_NAME = 'shop-data-manager'
     }
 
     stages {
@@ -24,12 +29,6 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Running Unit Tests...'
-
-                // 🔴 删除或注释掉下面这两行！
-                // 解释：因为 Jenkins 和现有的 MySQL 都在 mall-net 网络里，
-                // 我们直接连现成的数据库就行，不要试图去创建一个同名的冲突容器。
-                // sh 'docker-compose up -d mysql'
-                // sh 'sleep 20'
 
                 // ✅ 保持这行不变 (连接地址已经是 mysql:3306 了)
                 // 加上 -Dmaven.test.failure.ignore=true
