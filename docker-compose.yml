@@ -93,7 +93,23 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
 
-
+  # =========================================
+  # 6. Jenkins 服务 (CI/CD) - ✅ 新增
+  # =========================================
+  jenkins:
+    build: ./jenkins_docker       # 使用刚才创建的 Dockerfile 构建
+    container_name: mall-jenkins
+    user: root                    # ⚠️ 关键：使用 root 用户避免 Docker Socket 权限问题
+    ports:
+      - "8080:8080"               # Jenkins 面板
+      - "50000:50000"             # Agent 通信端口
+    volumes:
+      - ./jenkins_data:/var/jenkins_home  # 持久化 Jenkins 数据到当前目录
+      - /var/run/docker.sock:/var/run/docker.sock # ⚠️ 核心：让容器能使用宿主机的 Docker
+    networks:
+      - mall-net
+    depends_on:
+      - mysql                       # 确保网络互通
 # 定义数据卷
 volumes:
   mysql-data:

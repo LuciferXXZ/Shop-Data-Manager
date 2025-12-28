@@ -35,8 +35,8 @@ pipeline {
                 // 💡 修复点：修改数据库连接地址
                 // 连接宿主机映射端口 3307
                 // (如果您是在宿主机直接运行 Jenkins，请将 host.docker.internal 改为 localhost)
-// 加上 -Dmaven.test.failure.ignore=true
-sh './mvnw test -Dmaven.test.failure.ignore=true "-Dspring.datasource.url=jdbc:mysql://host.docker.internal:3307/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"'
+// 这里使用 3306 端口，因为是在 Docker 网络内部直接访问 mysql 容器
+sh './mvnw test -Dmaven.test.failure.ignore=true "-Dspring.datasource.url=jdbc:mysql://mysql:3306/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"'
             }
             post {
                 always {
