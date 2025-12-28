@@ -67,14 +67,12 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying to Environment...'
-
-                // ✅ 1. 只更新后端和前端 (以及依赖的组件，但不含 Jenkins)
-                // --build 确保使用最新的代码重新构建镜像
+                // 只更新后端和前端，避免重启 Jenkins 自身
                 sh "docker-compose up -d --build app-backend app-frontend"
 
-                // ✅ 2. 确保监控和数据库也是启动的 (通常它们不需要重建)
-                // 如果它们已经在运行，这个命令什么也不会做，非常安全
+                // 确保其他基础服务运行
                 sh "docker-compose up -d mysql prometheus grafana"
             }
         }
+    }
 }
